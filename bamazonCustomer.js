@@ -11,9 +11,9 @@ const pool = mysql.createPool({
 })
 
 // Display all products first
-pool.getConnection((err) => {
+pool.getConnection((err, connection) => {
   if (err) throw err
-  pool.query('SELECT * FROM products', (err, rows) => {
+  connection.query('SELECT * FROM products', (err, rows) => {
     if (err) throw err
     rows.forEach((item) => {
       console.log(`ID: ${item.item_id}, ${item.product_name}, price: $${item.price}`)
@@ -26,23 +26,24 @@ pool.getConnection((err) => {
       {
         type: 'number',
         name: 'id',
-        message: 'Which item ID would you like to buy?'
+        message: 'Which item ID would you like to buy?',
+        validate: (num) => num > 0 && num <= 10
       },
       {
         type: 'number',
         name: 'amount',
-        message: 'How much of that item would you like?'
+        message: 'How much of that item would you like?',
+        validate: (num) => num > 0
       }
     ])
     .then((answers) => {
-      pool.query('SELECT * FROM products WHERE item_id = ?', answers.id, (err, rows) => {
+      connection.query('SELECT * FROM products WHERE item_id = ?', answers.id, (err, rows) => {
         if (err) throw err
-        console.log(rows)
         if (rows[0].stock_quantity < answers.amount) {
           console.log('Insufficient quantity!')
           pool.end()
         } else {
-          pool.query(
+          connection.query(
             'UPDATE products SET stock_quantity = ? WHERE item_id = ?',
             [ rows[0].stock_quantity - answers.amount, answers.id ],
             (err) => {
